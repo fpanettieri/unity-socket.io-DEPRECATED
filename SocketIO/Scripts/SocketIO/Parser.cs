@@ -1,6 +1,6 @@
-﻿#region License
+#region License
 /*
- * Encoder.cs
+ * Parser.cs
  *
  * The MIT License
  *
@@ -25,55 +25,27 @@
  * THE SOFTWARE.
  */
 #endregion
-
-//#define SOCKET_IO_DEBUG			// Uncomment this for debug
-using System.Collections;
-using System.Text;
 using UnityEngine;
 
 namespace SocketIO
 {
-	public class Encoder
+	public class Parser
 	{
-		public string Encode(Packet packet)
+		public SocketIOEvent Parse(JSONObject json)
 		{
-			#if SOCKET_IO_DEBUG
-			Debug.Log("[SocketIO] Encoding: " + packet.json);
-			#endif
+			SocketIOEvent ev;
 
-			StringBuilder builder = new StringBuilder();
+			if (json.Count == 1 && json[0].type == JSONObject.Type.STRING) {
+				ev = new SocketIOEvent(json[0].ToString().Replace("\"",""));
 
-			// first is type
-			builder.Append((int)packet.enginePacketType);
-			builder.Append((int)packet.socketPacketType);
+			} else if (json.Count == 2) {
+				ev = new SocketIOEvent(json[0].ToString().Replace("\"",""), json [1]);
 
-			// attachments if we have them
-			if (packet.socketPacketType == SocketPacketType.BINARY_EVENT || packet.socketPacketType == SocketPacketType.BINARY_ACK) {
-				builder.Append(packet.attachments);
-				builder.Append('-');
+			} else {
+				throw new SocketIOException();
 			}
 
-			// if we have a namespace other than '/'
-			// we append it followed by a comma ','
-			if (!string.IsNullOrEmpty(packet.nsp) && !packet.nsp.Equals("/")) {
-				builder.Append(packet.nsp);
-				builder.Append(',');
-			}
-
-			// immediately followed by the id
-			if (packet.id > -1) {
-				builder.Append(packet.id);
-			}
-
-			if (packet.json != null) {
-				builder.Append(packet.json.ToString());
-			}
-
-			#if SOCKET_IO_DEBUG
-			Debug.Log("[SocketIO] Encoded: " + builder);
-			#endif
-
-			return builder.ToString();
+			return ev;
 		}
 	}
 }

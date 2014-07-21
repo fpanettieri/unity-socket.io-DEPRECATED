@@ -1,26 +1,54 @@
-﻿using UnityEngine;
-using System.Collections;
-using WebSocketSharp;
+﻿#region License
+/*
+ * SocketIO.cs
+ *
+ * The MIT License
+ *
+ * Copyright (c) 2012-2014 sta.blockhead
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+ * THE SOFTWARE.
+ */
+#endregion
+
+//#define SOCKET_IO_DEBUG			// Uncomment this for debug
 using System;
-using WebSocketSharp.Net;
+using System.Collections;
 using System.Collections.Generic;
 using System.Net.Security;
+using UnityEngine;
+using WebSocketSharp;
+using WebSocketSharp.Net;
 
 namespace SocketIO
 {
 	/**
 	 * SocketIO Component
 	 */
-	// TODO: on connect, store sid
-	// If disconnected queue outgoing msgs
+	// TODO: If disconnected queue outgoing msgs
 	public class SocketIO : MonoBehaviour
 	{
 		public string url = "ws://127.0.0.1:4567/socket.io/?EIO=3&transport=websocket";
 		public bool autoConnect = false;
-
 		private WebSocket ws;
 		private Encoder encoder;
 		private Decoder decoder;
+		private Parser parser;
 		private Dictionary<string, List<Action<SocketIOEvent>>> handlers;
 		private string sid;
 
@@ -31,6 +59,7 @@ namespace SocketIO
 			ws = new WebSocket(url);
 			encoder = new Encoder();
 			decoder = new Decoder();
+			parser = new Parser();
 			handlers = new Dictionary<string, List<Action<SocketIOEvent>>>();
 			sid = null;
 
@@ -39,7 +68,7 @@ namespace SocketIO
 			ws.OnError += OnError;
 			ws.OnClose += OnClose;
 
-			if(autoConnect){
+			if (autoConnect) {
 				Connect();
 			}
 
@@ -77,27 +106,27 @@ namespace SocketIO
 		
 		public void MessageCallback(SocketIOEvent e)
 		{
-			Debug.Log("[SocketIO] - Message received: " + e.name + " " + e.data);
+			Debug.Log("[SocketIO] Message received: " + e.name + " " + e.data);
 		}
 
 		public void TestOpen(SocketIOEvent e)
 		{
-			Debug.Log("[SocketIO] - Open received: " + e.name + " " + e.data);
+			Debug.Log("[SocketIO] Open received: " + e.name + " " + e.data);
 		}
 
 		public void TestBoop(SocketIOEvent e)
 		{
-			Debug.Log("[SocketIO] - Pong received: " + e.name + " " + e.data);
+			Debug.Log("[SocketIO] Boop received: " + e.name + " " + e.data);
 		}
 
 		public void TestError(SocketIOEvent e)
 		{
-			Debug.Log("[SocketIO] - Error received: " + e.name + " " + e.data);
+			Debug.Log("[SocketIO] Error received: " + e.name + " " + e.data);
 		}
 
 		public void TestClose(SocketIOEvent e)
 		{
-			Debug.Log("[SocketIO] - Close received: " + e.name + " " + e.data);
+			Debug.Log("[SocketIO] Close received: " + e.name + " " + e.data);
 		}
 
 		#region Public Methods
@@ -110,22 +139,35 @@ namespace SocketIO
 		public void On(string ev, Action<SocketIOEvent> callback)
 		{
 			if (handlers.ContainsKey(ev)) {
-				handlers[ev].Add(callback);
+				handlers [ev].Add(callback);
 			} else {
-				List<Action<SocketIOEvent>> h = new List<Action<SocketIOEvent>>();
-				h.Add(callback);
-				handlers[ev] = h;
+				List<Action<SocketIOEvent>> l = new List<Action<SocketIOEvent>>();
+				l.Add(callback);
+				handlers [ev] = l;
 			}
 		}
 
-		public void Off(string ev, Action callback)
+		public void Off(string ev, Action<SocketIOEvent> callback)
 		{
-			// TODO: implement event notification
+			if (!handlers.ContainsKey(ev)) {
+				Debug.LogWarning("[SocketIO] No callbacks registered for event: " + ev);
+				return;
+			}
+
+			List<Action<SocketIOEvent>> l = handlers [ev];
+			if (!l.Contains(callback)) {
+				Debug.LogWarning("[SocketIO] Couldn't remove callback action for event: " + ev);
+				return;
+			}
+
+			l.Remove(callback);
+			if (l.Count == 0) {
+				handlers.Remove(ev);
+			}
 		}
 
 		public void Emit(string ev)
 		{
-			Debug.Log(ev);
 			Packet packet = new Packet(EnginePacketType.MESSAGE, SocketPacketType.EVENT, -1, "/", 100, new JSONObject("[\"" + ev + "\"]"));
 			ws.Send(encoder.Encode(packet));
 		}
@@ -150,14 +192,16 @@ namespace SocketIO
 
 		#region Private Methods
 
-		private void OnOpen (object sender, EventArgs e)
+		private void OnOpen(object sender, EventArgs e)
 		{
 			EmitEvent("open");
 		}
 
 		private void OnMessage(object sender, MessageEventArgs e)
 		{
-			Debug.Log("[SocketIO] - Raw message: " + e.Data);
+			#if SOCKET_IO_DEBUG
+			Debug.Log("[SocketIO] Raw message: " + e.Data);
+			#endif
 			Packet packet = decoder.Decode(e);
 
 			switch (packet.enginePacketType) {
@@ -174,23 +218,30 @@ namespace SocketIO
 					break;
 				
 				default:
-					Debug.Log("[SocketIO] - Unhandled engine packet type: " + packet);
+					Debug.LogError("[SocketIO] Unhandled engine packet type: " + packet);
 					break;
 			}
 		}
 
 		void HandleOpen(Packet packet)
 		{
-			if(sid == null ){
-				Debug.Log("[SocketIO] - Socket.IO sid: " + packet.json["sid"].ToString());
-				sid = packet.json["sid"].ToString();
+			if (sid == null) {
+				#if SOCKET_IO_DEBUG
+				Debug.Log("[SocketIO] Socket.IO sid: " + packet.json["sid"].ToString());
+				#endif
+				sid = packet.json ["sid"].ToString();
 			}
 			EmitEvent("open");
 		}
 
 		void HandleMessage(Packet packet)
 		{
-			Debug.Log("TODO: Parse message and distribute to handlers\r\n" + packet);
+			if (packet.json == null) {
+				return;
+			}
+
+			SocketIOEvent e = parser.Parse(packet.json);
+			EmitEvent(e);
 		}
 		
 		private void OnError(object sender, ErrorEventArgs e)
@@ -205,66 +256,17 @@ namespace SocketIO
 
 		private void EmitEvent(string type)
 		{
-			if (!handlers.ContainsKey(type)) { return; }
-			SocketIOEvent e = new SocketIOEvent(type);
-			foreach (Action<SocketIOEvent> handler in this.handlers[type]) {
-				handler(e);
+			EmitEvent(new SocketIOEvent(type));
+		}
+
+		private void EmitEvent(SocketIOEvent ev)
+		{
+			if (!handlers.ContainsKey(ev.name)) {
+				return;
 			}
-		}
-
-		#endregion
-
-		#region Public Properties
-
-		public CompressionMethod Compression {
-			get { return ws.Compression; }
-			set { ws.Compression = value; }
-		}
-
-		public IEnumerable<Cookie> Cookies {
-			get { return ws.Cookies; }
-		}
-
-		public NetworkCredential Credentials {
-			get { return ws.Credentials; }
-		}
-
-		public string Extensions {
-			get { return ws.Extensions; }
-		}
-
-		public bool IsAlive {
-			get { return ws.IsAlive; }
-		}
-
-		public bool IsSecure {
-			get { return ws.IsSecure; }
-		}
-
-		public Logger Log {
-			get { return ws.Log; }
-		}
-
-		public string Origin {
-			get { return ws.Origin; }
-			set { ws.Origin = value; }
-		}
-
-		public string Protocol {
-			get { return ws.Protocol; }
-		}
-
-		public WebSocketState ReadyState {
-			get { return ws.ReadyState; }
-		}
-
-		public RemoteCertificateValidationCallback ServerCertificateValidationCallback {
-			get { return ws.ServerCertificateValidationCallback; }
-			set { ws.ServerCertificateValidationCallback = value; }
-		}
-
-		public Uri Url {
-			get { return ws.Url; }
+			foreach (Action<SocketIOEvent> handler in this.handlers[ev.name]) {
+				handler(ev);
+			}
 		}
 
 		#endregion
