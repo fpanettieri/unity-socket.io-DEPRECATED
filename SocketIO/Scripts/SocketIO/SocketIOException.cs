@@ -4,7 +4,7 @@
  *
  * The MIT License
  *
- * Copyright (c) 2012-2014 sta.blockhead
+ * Copyright (c) 2014 Fabio Panettieri
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -31,7 +31,8 @@ namespace SocketIO
 {
 	public class SocketIOException  : Exception
 	{
-				
+		public SocketIOException(){}		
+		public SocketIOException(string message): base(message){}
+		public SocketIOException(string message, Exception innerException): base(message, innerException){}
 	}
 }
-

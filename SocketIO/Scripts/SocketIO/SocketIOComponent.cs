@@ -4,7 +4,7 @@
  *
  * The MIT License
  *
- * Copyright (c) 2012-2014 sta.blockhead
+ * Copyright (c) 2014 Fabio Panettieri
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -30,106 +30,61 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Net.Security;
 using UnityEngine;
 using WebSocketSharp;
 using WebSocketSharp.Net;
 
 namespace SocketIO
 {
-	/**
-	 * SocketIO Component
-	 */
-	// TODO: If disconnected queue outgoing msgs
-	public class SocketIO : MonoBehaviour
+	public class SocketIOComponent : MonoBehaviour
 	{
+		#region Public Properties
+
 		public string url = "ws://127.0.0.1:4567/socket.io/?EIO=3&transport=websocket";
 		public bool autoConnect = false;
+		public float ackExpirationTime = 30f;
+		public WebSocket socket { get { return ws; } }
+		public string sid { get; set; }
+
+		#endregion
+
+		#region Private Properties
+
 		private WebSocket ws;
 		private Encoder encoder;
 		private Decoder decoder;
 		private Parser parser;
 		private Dictionary<string, List<Action<SocketIOEvent>>> handlers;
-		private string sid;
+		private Dictionary<int, Action<JSONObject>> acknowledges;
+		private int packetId;
 
-		public WebSocket socket { get { return ws; } }
+		#endregion
 
-		public void Start()
+		#region Public Methods
+
+		public void Awake()
 		{
 			ws = new WebSocket(url);
 			encoder = new Encoder();
 			decoder = new Decoder();
 			parser = new Parser();
 			handlers = new Dictionary<string, List<Action<SocketIOEvent>>>();
+			acknowledges = new Dictionary<int, Action<JSONObject>>();
 			sid = null;
+			packetId = 1;
 
 			ws.OnOpen += OnOpen;
 			ws.OnMessage += OnMessage;
 			ws.OnError += OnError;
 			ws.OnClose += OnClose;
 
-			if (autoConnect) {
-				Connect();
-			}
-
-			On("open", TestOpen);
-			On("boop", TestBoop);
-			On("error", TestError);
-			On("close", TestClose);
-
-			StartCoroutine("BeepBoop");
+			// TODO: start acknowledges garbage collection coroutine in X seconds
 		}
 
-		private IEnumerator BeepBoop()
+		public void Start()
 		{
-			// wait 1 seconds and continue
-			yield return new WaitForSeconds(1);
-
-			Emit("beep");
-
-			// wait 3 seconds and continue
-			yield return new WaitForSeconds(3);
-			
-			Emit("beep");
-
-			// wait 2 seconds and continue
-			yield return new WaitForSeconds(2);
-			
-			Emit("beep");
-
-			// wait ONE FRAME and continue
-			yield return null;
-
-			Emit("beep");
-			Emit("beep");
+			if (autoConnect) { Connect(); }
 		}
-		
-		public void MessageCallback(SocketIOEvent e)
-		{
-			Debug.Log("[SocketIO] Message received: " + e.name + " " + e.data);
-		}
-
-		public void TestOpen(SocketIOEvent e)
-		{
-			Debug.Log("[SocketIO] Open received: " + e.name + " " + e.data);
-		}
-
-		public void TestBoop(SocketIOEvent e)
-		{
-			Debug.Log("[SocketIO] Boop received: " + e.name + " " + e.data);
-		}
-
-		public void TestError(SocketIOEvent e)
-		{
-			Debug.Log("[SocketIO] Error received: " + e.name + " " + e.data);
-		}
-
-		public void TestClose(SocketIOEvent e)
-		{
-			Debug.Log("[SocketIO] Close received: " + e.name + " " + e.data);
-		}
-
-		#region Public Methods
 
 		public void Connect()
 		{
@@ -168,29 +123,33 @@ namespace SocketIO
 
 		public void Emit(string ev)
 		{
-			Packet packet = new Packet(EnginePacketType.MESSAGE, SocketPacketType.EVENT, -1, "/", 100, new JSONObject("[\"" + ev + "\"]"));
-			ws.Send(encoder.Encode(packet));
+			EmitPacket(++packetId, "[\"" + ev + "\"]");
 		}
 
 		public void Emit(string ev, JSONObject data)
 		{
-			Packet packet = new Packet(EnginePacketType.MESSAGE, SocketPacketType.EVENT, -1, "/", 10, new JSONObject("[\"" + ev + "\"," + data.ToString() + "]"));
-			ws.Send(encoder.Encode(packet));
+			EmitPacket(++packetId, "[\"" + ev + "\"," + data.ToString() + "]");
 		}
 
-		public void SetCookie(Cookie cookie)
+		public void Emit(string ev, JSONObject data, Action<JSONObject> ack)
 		{
-			ws.SetCookie(cookie);
-		}
-
-		public void SetCredentials(string username, string password, bool preAuth)
-		{
-			ws.SetCredentials(username, password, preAuth);
+			acknowledges[++packetId] = ack;
+			EmitPacket(packetId, "[\"" + ev + "\"," + data.ToString() + "]");
 		}
 
 		#endregion
 
 		#region Private Methods
+
+		private void EmitPacket(int id, string raw)
+		{
+			Packet packet = new Packet(EnginePacketType.MESSAGE, SocketPacketType.EVENT, 0, "/", id, new JSONObject(raw));
+			try {
+				ws.Send(encoder.Encode(packet));
+			} catch(SocketIOException ex) {
+				Debug.LogException(ex);
+			}
+		}
 
 		private void OnOpen(object sender, EventArgs e)
 		{
@@ -227,9 +186,9 @@ namespace SocketIO
 		{
 			if (sid == null) {
 				#if SOCKET_IO_DEBUG
-				Debug.Log("[SocketIO] Socket.IO sid: " + packet.json["sid"].ToString());
+				Debug.Log("[SocketIO] Socket.IO sid: " + packet.json["sid"].str);
 				#endif
-				sid = packet.json ["sid"].ToString();
+				sid = packet.json ["sid"].str;
 			}
 			EmitEvent("open");
 		}
@@ -240,8 +199,24 @@ namespace SocketIO
 				return;
 			}
 
-			SocketIOEvent e = parser.Parse(packet.json);
-			EmitEvent(e);
+			if(packet.socketPacketType == SocketPacketType.ACK){
+				if(!acknowledges.ContainsKey(packet.id)){ 
+					#if SOCKET_IO_DEBUG
+					Debug.Log("[SocketIO] Ack received for invalid Action: " + packet.id);
+					#endif
+					return; 
+				}
+
+				Action<JSONObject> ack = acknowledges[packet.id];
+				acknowledges.Remove(packet.id);
+				ack.Invoke(packet.json);
+				return;
+			}
+
+			if (packet.socketPacketType == SocketPacketType.EVENT) {
+				SocketIOEvent e = parser.Parse (packet.json);
+				EmitEvent (e);
+			}
 		}
 		
 		private void OnError(object sender, ErrorEventArgs e)
@@ -261,11 +236,13 @@ namespace SocketIO
 
 		private void EmitEvent(SocketIOEvent ev)
 		{
-			if (!handlers.ContainsKey(ev.name)) {
-				return;
-			}
+			if (!handlers.ContainsKey(ev.name)) { return; }
 			foreach (Action<SocketIOEvent> handler in this.handlers[ev.name]) {
-				handler(ev);
+				try{
+					handler(ev);
+				} catch(Exception ex){
+					Debug.LogException(ex);
+				}
 			}
 		}
 
