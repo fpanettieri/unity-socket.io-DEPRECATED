@@ -4,7 +4,7 @@
  *
  * The MIT License
  *
- * Copyright (c) 2012-2014 sta.blockhead
+ * Copyright (c) 2014 Fabio Panettieri
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -33,19 +33,23 @@ namespace SocketIO
 	{
 		public SocketIOEvent Parse(JSONObject json)
 		{
-			SocketIOEvent ev;
-
-			if (json.Count == 1 && json[0].type == JSONObject.Type.STRING) {
-				ev = new SocketIOEvent(json[0].ToString().Replace("\"",""));
-
-			} else if (json.Count == 2) {
-				ev = new SocketIOEvent(json[0].ToString().Replace("\"",""), json [1]);
-
-			} else {
-				throw new SocketIOException();
+			if (json.Count < 1 || json.Count > 2) {
+				throw new SocketIOException("Invalid number of parameters received: " + json.Count);
 			}
 
-			return ev;
+			if (json[0].type != JSONObject.Type.STRING) {
+				throw new SocketIOException("Invalid parameter type. " + json[0].type + " received while expecting " + JSONObject.Type.STRING);
+			}
+
+			if (json.Count == 1) {
+				return new SocketIOEvent(json[0].str);
+			} 
+
+			if (json[1].type != JSONObject.Type.OBJECT) {
+				throw new SocketIOException("Invalid argument type. " + json[1].type + " received while expecting " + JSONObject.Type.OBJECT);
+			}
+
+			return new SocketIOEvent(json[0].str, json[1]);
 		}
 	}
 }

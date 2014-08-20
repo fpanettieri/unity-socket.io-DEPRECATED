@@ -4,7 +4,7 @@
  *
  * The MIT License
  *
- * Copyright (c) 2012-2014 sta.blockhead
+ * Copyright (c) 2014 Fabio Panettieri
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -27,6 +27,7 @@
 #endregion
 
 //#define SOCKET_IO_DEBUG			// Uncomment this for debug
+using System;
 using System.Collections;
 using System.Text;
 using UnityEngine;
@@ -37,43 +38,49 @@ namespace SocketIO
 	{
 		public string Encode(Packet packet)
 		{
-			#if SOCKET_IO_DEBUG
-			Debug.Log("[SocketIO] Encoding: " + packet.json);
-			#endif
+			try
+			{
+				#if SOCKET_IO_DEBUG
+				Debug.Log("[SocketIO] Encoding: " + packet.json);
+				#endif
 
-			StringBuilder builder = new StringBuilder();
+				StringBuilder builder = new StringBuilder();
 
-			// first is type
-			builder.Append((int)packet.enginePacketType);
-			builder.Append((int)packet.socketPacketType);
+				// first is type
+				builder.Append((int)packet.enginePacketType);
+				builder.Append((int)packet.socketPacketType);
 
-			// attachments if we have them
-			if (packet.socketPacketType == SocketPacketType.BINARY_EVENT || packet.socketPacketType == SocketPacketType.BINARY_ACK) {
-				builder.Append(packet.attachments);
-				builder.Append('-');
+				// attachments if we have them
+				if (packet.socketPacketType == SocketPacketType.BINARY_EVENT || packet.socketPacketType == SocketPacketType.BINARY_ACK) {
+					builder.Append(packet.attachments);
+					builder.Append('-');
+				}
+
+				// if we have a namespace other than '/'
+				// we append it followed by a comma ','
+				if (!string.IsNullOrEmpty(packet.nsp) && !packet.nsp.Equals("/")) {
+					builder.Append(packet.nsp);
+					builder.Append(',');
+				}
+
+				// immediately followed by the id
+				if (packet.id > -1) {
+					builder.Append(packet.id);
+				}
+
+				if (packet.json != null) {
+					builder.Append(packet.json.ToString());
+				}
+
+				#if SOCKET_IO_DEBUG
+				Debug.Log("[SocketIO] Encoded: " + builder);
+				#endif
+
+				return builder.ToString();
+			
+			} catch(Exception ex) {
+				throw new SocketIOException("Packet encoding failed: " + packet ,ex);
 			}
-
-			// if we have a namespace other than '/'
-			// we append it followed by a comma ','
-			if (!string.IsNullOrEmpty(packet.nsp) && !packet.nsp.Equals("/")) {
-				builder.Append(packet.nsp);
-				builder.Append(',');
-			}
-
-			// immediately followed by the id
-			if (packet.id > -1) {
-				builder.Append(packet.id);
-			}
-
-			if (packet.json != null) {
-				builder.Append(packet.json.ToString());
-			}
-
-			#if SOCKET_IO_DEBUG
-			Debug.Log("[SocketIO] Encoded: " + builder);
-			#endif
-
-			return builder.ToString();
 		}
 	}
 }
