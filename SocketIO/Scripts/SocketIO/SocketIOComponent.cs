@@ -58,12 +58,6 @@ namespace SocketIO
 		private Dictionary<int, Action<JSONObject>> acknowledges;
 		private int packetId;
 
-		private object eventQueueLock;
-		private Queue<SocketIOEvent> eventQueue;
-
-		private object packetQueueLock;
-		private Queue<Packet> packetQueue;
-
 		#endregion
 
 		#region Public Methods
@@ -84,36 +78,12 @@ namespace SocketIO
 			ws.OnError += OnError;
 			ws.OnClose += OnClose;
 
-			eventQueueLock = new object();
-			eventQueue = new Queue<SocketIOEvent>();
-
-			packetQueueLock = new object();
-			packetQueue = new Queue<Packet>();
-
 			// TODO: start acknowledges garbage collection coroutine in X seconds
 		}
 
 		public void Start()
 		{
 			if (autoConnect) { Connect(); }
-		}
-
-		public void Update()
-		{
-			lock(eventQueueLock){ 
-				while(eventQueue.Count > 0){
-					EmitEvent(eventQueue.Dequeue());
-				}
-			}
-
-			lock(packetQueueLock){
-				while(packetQueue.Count > 0){
-					Packet packet = packetQueue.Dequeue();
-					Action<JSONObject> ack = acknowledges[packet.id];
-					acknowledges.Remove(packet.id);
-					ack.Invoke(packet.json);
-				}
-			}
 		}
 
 		public void Connect()
@@ -173,10 +143,6 @@ namespace SocketIO
 
 		private void EmitPacket(int id, string raw)
 		{
-			#if SOCKET_IO_DEBUG
-			Debug.Log("[SocketIO] Emit: " + raw);
-			#endif
-
 			Packet packet = new Packet(EnginePacketType.MESSAGE, SocketPacketType.EVENT, 0, "/", id, new JSONObject(raw));
 			try {
 				ws.Send(encoder.Encode(packet));
@@ -222,7 +188,7 @@ namespace SocketIO
 				#if SOCKET_IO_DEBUG
 				Debug.Log("[SocketIO] Socket.IO sid: " + packet.json["sid"].str);
 				#endif
-				sid = packet.json["sid"].str;
+				sid = packet.json ["sid"].str;
 			}
 			EmitEvent("open");
 		}
@@ -240,16 +206,17 @@ namespace SocketIO
 					#endif
 					return; 
 				}
-				lock(packetQueueLock){ packetQueue.Enqueue(packet); }
+
+				Action<JSONObject> ack = acknowledges[packet.id];
+				acknowledges.Remove(packet.id);
+				ack.Invoke(packet.json);
 				return;
 			}
 
 			if (packet.socketPacketType == SocketPacketType.EVENT) {
-				SocketIOEvent e = parser.Parse(packet.json);
-				lock(eventQueueLock){ eventQueue.Enqueue(e); }
+				SocketIOEvent e = parser.Parse (packet.json);
+				EmitEvent (e);
 			}
-
-			// TODO: queue this and dispatch them from the "update" method
 		}
 		
 		private void OnError(object sender, ErrorEventArgs e)

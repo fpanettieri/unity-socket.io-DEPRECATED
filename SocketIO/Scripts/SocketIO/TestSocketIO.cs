@@ -34,7 +34,11 @@ public class TestSocketIO : MonoBehaviour
 {
 	private SocketIOComponent socket;
 
+<<<<<<< HEAD
 	public void Start() 
+=======
+	public void Start()
+>>>>>>> FETCH_HEAD
 	{
 		GameObject go = GameObject.Find("SocketIO");
 		socket = go.GetComponent<SocketIOComponent>();
