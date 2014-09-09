@@ -39,9 +39,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 251dc7db9857fae4e8c9293b45173db2, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  url: ws://127.0.0.1:4567/socket.io/?EIO=2&transport=websocket
+  url: ws://localhost:4567/socket.io/?EIO=4&transport=websocket
   autoConnect: 1
-  ackExpirationTime: 30
+  recconectDelay: 5
 --- !u!1001 &100100000
 Prefab:
   m_ObjectHideFlags: 1

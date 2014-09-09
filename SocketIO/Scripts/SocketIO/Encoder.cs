@@ -48,6 +48,10 @@ namespace SocketIO
 
 				// first is type
 				builder.Append((int)packet.enginePacketType);
+				if(!packet.enginePacketType.Equals(EnginePacketType.MESSAGE)){
+					return builder.ToString();
+				}
+
 				builder.Append((int)packet.socketPacketType);
 
 				// attachments if we have them
@@ -68,7 +72,7 @@ namespace SocketIO
 					builder.Append(packet.id);
 				}
 
-				if (packet.json != null) {
+				if (packet.json != null && !packet.json.ToString().Equals("null")) {
 					builder.Append(packet.json.ToString());
 				}
 

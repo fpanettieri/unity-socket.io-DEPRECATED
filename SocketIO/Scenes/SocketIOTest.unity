@@ -78,7 +78,7 @@ NavMeshSettings:
 GameObject:
   m_ObjectHideFlags: 0
   m_PrefabParentObject: {fileID: 100000, guid: b30cc084d923f0645b55bba668610d48, type: 2}
-  m_PrefabInternal: {fileID: 1942909008}
+  m_PrefabInternal: {fileID: 1122655700}
   serializedVersion: 4
   m_Component:
   - 4: {fileID: 244749907}
@@ -95,21 +95,21 @@ MonoBehaviour:
   m_ObjectHideFlags: 0
   m_PrefabParentObject: {fileID: 11400000, guid: b30cc084d923f0645b55bba668610d48,
     type: 2}
-  m_PrefabInternal: {fileID: 1942909008}
+  m_PrefabInternal: {fileID: 1122655700}
   m_GameObject: {fileID: 244749905}
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 251dc7db9857fae4e8c9293b45173db2, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  url: ws://127.0.0.1:4567/socket.io/?EIO=2&transport=websocket
+  url: ws://localhost:4567/socket.io/?EIO=4&transport=websocket
   autoConnect: 1
-  ackExpirationTime: 30
+  recconectDelay: 5
 --- !u!4 &244749907
 Transform:
   m_ObjectHideFlags: 0
   m_PrefabParentObject: {fileID: 400000, guid: b30cc084d923f0645b55bba668610d48, type: 2}
-  m_PrefabInternal: {fileID: 1942909008}
+  m_PrefabInternal: {fileID: 1122655700}
   m_GameObject: {fileID: 244749905}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
@@ -117,46 +117,7 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_RootOrder: 2
---- !u!1 &1727790172
-GameObject:
-  m_ObjectHideFlags: 0
-  m_PrefabParentObject: {fileID: 0}
-  m_PrefabInternal: {fileID: 0}
-  serializedVersion: 4
-  m_Component:
-  - 4: {fileID: 1727790174}
-  - 114: {fileID: 1727790173}
-  m_Layer: 0
-  m_Name: TestSocket
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!114 &1727790173
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_PrefabParentObject: {fileID: 0}
-  m_PrefabInternal: {fileID: 0}
-  m_GameObject: {fileID: 1727790172}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: cd835ec30d564354fa129a8a580655bb, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
---- !u!4 &1727790174
-Transform:
-  m_ObjectHideFlags: 0
-  m_PrefabParentObject: {fileID: 0}
-  m_PrefabInternal: {fileID: 0}
-  m_GameObject: {fileID: 1727790172}
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_Children: []
-  m_Father: {fileID: 0}
-  m_RootOrder: 1
---- !u!1001 &1942909008
+--- !u!1001 &1122655700
 Prefab:
   m_ObjectHideFlags: 0
   serializedVersion: 2
@@ -193,13 +154,52 @@ Prefab:
       objectReference: {fileID: 0}
     - target: {fileID: 400000, guid: b30cc084d923f0645b55bba668610d48, type: 2}
       propertyPath: m_RootOrder
-      value: 3
+      value: 2
       objectReference: {fileID: 0}
     m_RemovedComponents: []
   m_ParentPrefab: {fileID: 100100000, guid: b30cc084d923f0645b55bba668610d48, type: 2}
   m_RootGameObject: {fileID: 244749905}
   m_IsPrefabParent: 0
   m_IsExploded: 1
+--- !u!1 &1727790172
+GameObject:
+  m_ObjectHideFlags: 0
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 0}
+  serializedVersion: 4
+  m_Component:
+  - 4: {fileID: 1727790174}
+  - 114: {fileID: 1727790173}
+  m_Layer: 0
+  m_Name: TestSocket
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &1727790173
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 0}
+  m_GameObject: {fileID: 1727790172}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c3c41d927209c2049b714971a1271478, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+--- !u!4 &1727790174
+Transform:
+  m_ObjectHideFlags: 0
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 0}
+  m_GameObject: {fileID: 1727790172}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_RootOrder: 1
 --- !u!1 &2055889949
 GameObject:
   m_ObjectHideFlags: 0
