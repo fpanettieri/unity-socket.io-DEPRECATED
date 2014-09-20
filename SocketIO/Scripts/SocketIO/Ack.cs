@@ -1,6 +1,6 @@
 ﻿#region License
 /*
- * Packet.cs
+ * Ack.cs
  *
  * The MIT License
  *
@@ -26,34 +26,33 @@
  */
 #endregion
 
+using System;
+
 namespace SocketIO
 {
-	public class Packet
+	public class Ack
 	{
-		public EnginePacketType enginePacketType;
-		public SocketPacketType socketPacketType;
+		public int packetId;
+		public DateTime time;
 
-		public int attachments;
-		public string nsp;
-		public int id;
-		public JSONObject json;
+		private System.Action<JSONObject> action;
 
-		public Packet() : this(EnginePacketType.UNKNOWN, SocketPacketType.UNKNOWN, -1, "/", -1, null) { }
-		public Packet(EnginePacketType enginePacketType) : this(enginePacketType, SocketPacketType.UNKNOWN, -1, "/", -1, null) { }
-
-		public Packet(EnginePacketType enginePacketType, SocketPacketType socketPacketType, int attachments, string nsp, int id, JSONObject json)
+		public Ack(int packetId, System.Action<JSONObject> action)
 		{
-			this.enginePacketType = enginePacketType;
-			this.socketPacketType = socketPacketType;
-			this.attachments = attachments;
-			this.nsp = nsp;
-			this.id = id;
-			this.json = json;
+			this.packetId = packetId;
+			this.time = DateTime.Now;
+			this.action = action;
+		}
+
+		public void Invoke(JSONObject ev)
+		{
+			action.Invoke(ev);
 		}
 
 		public override string ToString()
 		{
-			return string.Format("[Packet: enginePacketType={0}, socketPacketType={1}, attachments={2}, nsp={3}, id={4}, json={5}]", enginePacketType, socketPacketType, attachments, nsp, id, json);
+			return string.Format("[Ack: packetId={0}, time={1}, action={2}]", packetId, time, action);
 		}
 	}
 }
+
