@@ -32,7 +32,7 @@
   1. Obtaining the Socket.IO component reference
   
     GameObject go = GameObject.Find("SocketIO");
-    socket = go.GetComponent<SocketIOComponent>();
+    SocketIOComponent socket = go.GetComponent<SocketIOComponent>();
 
 	Bear in mind that using GameObject.Find might be pretty expensive, you 
 	might want to store that reference in a variable for later use.
