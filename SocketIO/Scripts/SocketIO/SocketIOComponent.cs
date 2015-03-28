@@ -53,6 +53,12 @@ namespace SocketIO
 		public string sid { get; set; }
 		public bool IsConnected { get { return connected; } }
 
+        public Parser Parser
+        {
+            get { return parser; }
+            set { parser = value; }
+        }
+
 		#endregion
 
 		#region Private Properties
@@ -93,7 +99,7 @@ namespace SocketIO
 		{
 			encoder = new Encoder();
 			decoder = new Decoder();
-			parser = new Parser();
+			parser = new DefaultParser();
 			handlers = new Dictionary<string, List<Action<SocketIOEvent>>>();
 			ackList = new List<Ack>();
 			sid = null;
