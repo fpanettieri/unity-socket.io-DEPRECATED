@@ -383,7 +383,7 @@ namespace SocketIO
 
 		private void OnError(object sender, ErrorEventArgs e)
 		{
-			EmitEvent("error");
+			EmitEvent(new SocketIOEvent("error", JSONObject.CreateStringObject(e.Message)));
 		}
 
 		private void OnClose(object sender, CloseEventArgs e)
