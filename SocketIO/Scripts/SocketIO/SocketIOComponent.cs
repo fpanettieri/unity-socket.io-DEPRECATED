@@ -231,6 +231,11 @@ namespace SocketIO
 			ackList.Add(new Ack(packetId, action));
 		}
 
+		public void Emit(string ev, string str)
+		{
+			EmitMessage(-1, string.Format("[\"{0}\",\"{1}\"]", ev, str));
+		}
+
 		public void Emit(string ev, JSONObject data)
 		{
 			EmitMessage(-1, string.Format("[\"{0}\",{1}]", ev, data));
