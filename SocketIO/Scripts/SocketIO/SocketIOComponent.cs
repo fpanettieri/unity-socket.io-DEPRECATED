@@ -255,11 +255,10 @@ namespace SocketIO
 		{
 			WebSocket webSocket = (WebSocket)obj;
 			while(connected){
-				if(webSocket.IsConnected){
-					Thread.Sleep(reconnectDelay);
-				} else {
+				if(!webSocket.IsConnected){
 					webSocket.Connect();
 				}
+				Thread.Sleep(reconnectDelay);
 			}
 			webSocket.Close();
 		}
