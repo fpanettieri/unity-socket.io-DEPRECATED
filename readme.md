@@ -1,6 +1,11 @@
 --------------------------------------------------------------------------------
-                          SocketIO for Unity - v1.0.0                          
+ DEPRECATED DEPRECATED DEPRECATED                   SocketIO for Unity - v1.0.0                          
 --------------------------------------------------------------------------------
+
+# Deprecation Notice #
+
+  I haven't used this package in almost 2 years now, the main protocol will
+  probably work, but I no longer mantain it nor add support for new features.
 
 # Overview #
   
