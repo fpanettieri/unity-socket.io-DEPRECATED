@@ -1,5 +1,5 @@
 --------------------------------------------------------------------------------
- DEPRECATED DEPRECATED DEPRECATED                   SocketIO for Unity - v1.0.0                          
+        DEPRECATED                   SocketIO for Unity - v1.0.0                          
 --------------------------------------------------------------------------------
 
 # Deprecation Notice #
@@ -15,13 +15,6 @@
   
   While connected, Socket.IO run on it's own thread to avoid blocking the main
   thread. Events are queued and dispatched on the next frame they are received.
-
-
-# Support #
-  
-  fpanettieri@gmail.com
-  skype: fabio.panettieri
-
 
 # Quick Start #
 
