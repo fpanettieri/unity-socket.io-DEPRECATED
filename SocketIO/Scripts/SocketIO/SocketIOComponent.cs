@@ -138,8 +138,9 @@ namespace SocketIO
 				}
 			}
 
-			if(wsConnected != ws.IsConnected){
-				wsConnected = ws.IsConnected;
+			if(wsConnected != ws.IsAlive)
+            {
+				wsConnected = ws.IsAlive;
 				if(wsConnected){
 					EmitEvent("connect");
 				} else {
@@ -167,10 +168,6 @@ namespace SocketIO
 		#endregion
 
 		#region Public Interface
-
-        public void SetHeader(string header, string value) {
-            ws.SetHeader(header, value);
-        }
 		
 		public void Connect()
 		{
@@ -255,7 +252,7 @@ namespace SocketIO
 		{
 			WebSocket webSocket = (WebSocket)obj;
 			while(connected){
-				if(webSocket.IsConnected){
+				if(webSocket.IsAlive){
 					Thread.Sleep(reconnectDelay);
 				} else {
 					webSocket.Connect();
@@ -284,7 +281,7 @@ namespace SocketIO
 					EmitPacket(new Packet(EnginePacketType.PING));
 					pingStart = DateTime.Now;
 					
-					while(webSocket.IsConnected && thPinging && (DateTime.Now.Subtract(pingStart).TotalSeconds < timeoutMilis)){
+					while(webSocket.IsAlive && thPinging && (DateTime.Now.Subtract(pingStart).TotalSeconds < timeoutMilis)){
 						Thread.Sleep(200);
 					}
 					
