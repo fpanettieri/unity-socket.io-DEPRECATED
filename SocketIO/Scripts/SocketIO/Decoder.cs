@@ -27,6 +27,7 @@
 #endregion
 
 //#define SOCKET_IO_DEBUG			// Uncomment this for debug
+using Newtonsoft.Json.Linq;
 using System;
 using System.Collections;
 using System.Text;
@@ -37,61 +38,90 @@ namespace SocketIO
 {
 	public class Decoder
 	{
-		public Packet Decode(MessageEventArgs e)
+        private Packet binaryPacket;
+
+        public void Add(MessageEventArgs e, Action<Packet> callback)
 		{
-			try
-			{
-				#if SOCKET_IO_DEBUG
-				Debug.Log("[SocketIO] Decoding: " + e.Data);
-				#endif
+            try {
+                #if SOCKET_IO_DEBUG
+                Debug.Log("[SocketIO] Decoding: " + e.Data);
+                #endif
+                
+                if (e.IsBinary) {
+                    binaryPacket.json[1] = Encoding.UTF8.GetString(e.RawData);
 
-				string data = e.Data;
-				Packet packet = new Packet();
-				int offset = 0;
+                    #if SOCKET_IO_DEBUG
+                    Debug.Log("[SocketIO] Decoded Binary: " + binaryPacket);
+                    #endif
 
-				// look up packet type
-				int enginePacketType = int.Parse(data.Substring(offset, 1));
-				packet.enginePacketType = (EnginePacketType)enginePacketType;
+                    callback.Invoke(binaryPacket);
+                    binaryPacket = null;
+                    return;
+                }
 
-				if (enginePacketType == (int)EnginePacketType.MESSAGE) {
-					int socketPacketType = int.Parse(data.Substring(++offset, 1));
-					packet.socketPacketType = (SocketPacketType)socketPacketType;
-				}
+                string data = e.Data;
+                Packet packet = new Packet();
+                int offset = 0;
 
-				// connect message properly parsed
-				if (data.Length <= 2) {
-					#if SOCKET_IO_DEBUG
-					Debug.Log("[SocketIO] Decoded: " + packet);
-					#endif
-					return packet;
-				}
+                // look up packet type
+                packet.enginePacketType = (EnginePacketType)int.Parse(data.Substring(offset, 1));
 
-				// look up namespace (if any)
-				if ('/' == data [offset + 1]) {
-					StringBuilder builder = new StringBuilder();
-					while (offset < data.Length - 1 && data[++offset] != ',') {
-						builder.Append(data [offset]);
-					}
-					packet.nsp = builder.ToString();
-				} else {
-					packet.nsp = "/";
-				}
+                if (packet.enginePacketType == EnginePacketType.PONG) {
+                    callback.Invoke(packet);
+                    return;
+                }
 
-				// look up id
-				char next = data [offset + 1];
-				if (next != ' ' && char.IsNumber(next)) {
-					StringBuilder builder = new StringBuilder();
-					while (offset < data.Length - 1) {
-						char c = data [++offset];
-						if (char.IsNumber(c)) {
-							builder.Append(c);
-						} else {
-							--offset;
-							break;
-						}
-					}
-					packet.id = int.Parse(builder.ToString());
-				}
+                if (packet.enginePacketType == EnginePacketType.MESSAGE) {
+                    packet.socketPacketType = (SocketPacketType)int.Parse(data.Substring(++offset, 1));
+                }
+
+                // connect message properly parsed
+                if (packet.socketPacketType == SocketPacketType.CONNECT) {
+                    #if SOCKET_IO_DEBUG
+                    Debug.Log("[SocketIO] Decoded: " + packet);
+                    #endif
+                    callback.Invoke(packet);
+                    return;
+                }
+
+                if (packet.socketPacketType == SocketPacketType.BINARY_EVENT || packet.socketPacketType == SocketPacketType.BINARY_ACK) {
+                    StringBuilder builder = new StringBuilder();
+                    while (offset < data.Length - 1) {
+                        char c = data[++offset];
+                        if (char.IsNumber(c)) {
+                            builder.Append(c);
+                        } else {
+                            break;
+                        }
+                    }
+                    packet.attachments = int.Parse(builder.ToString());
+                }
+
+                // look up namespace (if any)
+                if ('/' == data[offset + 1]) {
+                    StringBuilder builder = new StringBuilder();
+                    while (offset < data.Length - 1 && data[++offset] != ',') {
+                        builder.Append(data[offset]);
+                    }
+                    packet.nsp = builder.ToString();
+                } else {
+                    packet.nsp = "/";
+                }
+
+                // look up id
+                if (char.IsNumber(data[offset + 1])) {
+                    StringBuilder builder = new StringBuilder();
+                    while (offset < data.Length - 1) {
+                        char c = data[++offset];
+                        if (char.IsNumber(c)) {
+                            builder.Append(c);
+                        } else {
+                            --offset;
+                            break;
+                        }
+                    }
+                    packet.id = int.Parse(builder.ToString());
+                }
 
 				// look up json data
 				if (++offset < data.Length - 1) {
@@ -99,7 +129,7 @@ namespace SocketIO
 						#if SOCKET_IO_DEBUG
 						Debug.Log("[SocketIO] Parsing JSON: " + data.Substring(offset));
 						#endif
-						packet.json = new JSONObject(data.Substring(offset));
+						packet.json = JToken.Parse(data.Substring(offset));
 					} catch (Exception ex) {
 						Debug.LogException(ex);
 					}
@@ -107,9 +137,13 @@ namespace SocketIO
 
 				#if SOCKET_IO_DEBUG
 				Debug.Log("[SocketIO] Decoded: " + packet);
-				#endif
+#endif
 
-				return packet;
+                if (packet.socketPacketType == SocketPacketType.BINARY_EVENT) {
+                    binaryPacket = packet;
+                } else {
+                    callback.Invoke(packet);
+                }
 
 			} catch(Exception ex) {
 				throw new SocketIOException("Packet decoding failed: " + e.Data ,ex);

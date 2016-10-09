@@ -25,30 +25,32 @@
  * THE SOFTWARE.
  */
 #endregion
+using Newtonsoft.Json.Linq;
 using UnityEngine;
 
 namespace SocketIO
 {
 	public class Parser
 	{
-		public SocketIOEvent Parse(JSONObject json)
+		public SocketIOEvent Parse(JToken json)
 		{
-			if (json.Count < 1 || json.Count > 2) {
-				throw new SocketIOException("Invalid number of parameters received: " + json.Count);
+            var array = json.ToObject<JArray>();
+			if (array.Count < 1 || array.Count > 2) {
+				throw new SocketIOException("Invalid number of parameters received: " + array.Count);
 			}
-
-			if (json[0].type != JSONObject.Type.STRING) {
-				throw new SocketIOException("Invalid parameter type. " + json[0].type + " received while expecting " + JSONObject.Type.STRING);
+            
+			if (json[0].Type != JTokenType.String) {
+				throw new SocketIOException("Invalid parameter type. " + json[0].Type + " received while expecting " + JTokenType.String);
 			}
-
-			if (json.Count == 1) {
-				return new SocketIOEvent(json[0].str);
+            
+			if (array.Count == 1) {
+				return new SocketIOEvent(json[0].ToString());
 			} 
 
-			if (json[1].type == JSONObject.Type.OBJECT || json[1].type == JSONObject.Type.STRING) {
-				return new SocketIOEvent(json[0].str, json[1]);
+			if (json[1].Type == JTokenType.Object || json[1].Type == JTokenType.String) {
+				return new SocketIOEvent(json[0].ToString(), json[1]);
 			} else {
-				throw new SocketIOException("Invalid argument type. " + json[1].type + " received");
+				throw new SocketIOException("Invalid argument type. " + json[1].Type + " received");
 			}
 		}
 	}

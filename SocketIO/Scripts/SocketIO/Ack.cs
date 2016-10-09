@@ -26,6 +26,7 @@
  */
 #endregion
 
+using Newtonsoft.Json.Linq;
 using System;
 
 namespace SocketIO
@@ -35,16 +36,16 @@ namespace SocketIO
 		public int packetId;
 		public DateTime time;
 
-		private System.Action<JSONObject> action;
+		private System.Action<JToken> action;
 
-		public Ack(int packetId, System.Action<JSONObject> action)
+		public Ack(int packetId, System.Action<JToken> action)
 		{
 			this.packetId = packetId;
 			this.time = DateTime.Now;
 			this.action = action;
 		}
 
-		public void Invoke(JSONObject ev)
+		public void Invoke(JToken ev)
 		{
 			action.Invoke(ev);
 		}

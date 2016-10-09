@@ -84,7 +84,7 @@ public class TestSocketIO : MonoBehaviour
 
 		Debug.Log(
 			"#####################################################" +
-			"THIS: " + e.data.GetField("this").str +
+			"THIS: " + e.data["this"] +
 			"#####################################################"
 		);
 	}
