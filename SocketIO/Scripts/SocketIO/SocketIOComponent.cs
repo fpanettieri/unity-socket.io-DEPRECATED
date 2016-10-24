@@ -350,7 +350,6 @@ namespace SocketIO
 			debugMethod.Invoke("[SocketIO] Socket.IO sid: " + packet.json["sid"].str);
 			#endif
 			sid = packet.json["sid"].str;
-			EmitEvent("open");
 		}
 
 		private void HandlePing()
