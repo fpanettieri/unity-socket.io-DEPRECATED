@@ -29,7 +29,12 @@ using UnityEngine;
 
 namespace SocketIO
 {
-	public class Parser
+    public interface Parser
+    {
+        SocketIOEvent Parse(JSONObject json);
+    }
+
+	public class DefaultParser : Parser
 	{
 		public SocketIOEvent Parse(JSONObject json)
 		{
