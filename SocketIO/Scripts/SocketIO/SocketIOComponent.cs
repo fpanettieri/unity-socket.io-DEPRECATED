@@ -1,4 +1,4 @@
-﻿#region License
+#region License
 /*
  * SocketIO.cs
  *
@@ -89,7 +89,12 @@ namespace SocketIO
 
 		#region Unity interface
 
-		public void Awake()
+	    public void Awake()
+	    {
+            if (autoConnect) { Initialize(); }
+        }
+
+		public void Initialize()
 		{
 			encoder = new Encoder();
 			decoder = new Decoder();
@@ -308,7 +313,8 @@ namespace SocketIO
 			EmitPacket(new Packet(EnginePacketType.CLOSE));
 		}
 
-		private void EmitPacket(Packet packet)
+#pragma warning disable 0168
+        private void EmitPacket(Packet packet)
 		{
 			#if SOCKET_IO_DEBUG
 			debugMethod.Invoke("[SocketIO] " + packet);
@@ -322,8 +328,9 @@ namespace SocketIO
 				#endif
 			}
 		}
+#pragma warning restore 0168
 
-		private void OnOpen(object sender, EventArgs e)
+        private void OnOpen(object sender, EventArgs e)
 		{
 			EmitEvent("open");
 		}
@@ -401,7 +408,8 @@ namespace SocketIO
 			EmitEvent(new SocketIOEvent(type));
 		}
 
-		private void EmitEvent(SocketIOEvent ev)
+#pragma warning disable 0168
+        private void EmitEvent(SocketIOEvent ev)
 		{
 			if (!handlers.ContainsKey(ev.name)) { return; }
 			foreach (Action<SocketIOEvent> handler in this.handlers[ev.name]) {
@@ -414,8 +422,9 @@ namespace SocketIO
 				}
 			}
 		}
+#pragma warning restore 0168
 
-		private void InvokeAck(Packet packet)
+        private void InvokeAck(Packet packet)
 		{
 			Ack ack;
 			for(int i = 0; i < ackList.Count; i++){
